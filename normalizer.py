@@ -1,55 +1,51 @@
-# app.py
-import streamlit as st
-from normalizer import (
-    NormalizeOptions,
-    extract_text_from_pdf_bytes,
-    normalize_text,
-    build_docx_bytes,
+import re
+from dataclasses import dataclass
+from typing import Optional
+
+RE_DATOS_PERSONALES = re.compile(
+    r"DATOS\s+PERSONALES[\s\S]*?FORMACI[ÓO]N\s+ACAD[ÉE]MICA",
+    re.IGNORECASE
 )
+RE_RUBRO_BASURA = re.compile(
+    r"^\s*TECNOLOG[IÍ]A\s+E\s+INNOVACI[ÓO]N\s*$",
+    re.IGNORECASE | re.MULTILINE
+)
+RE_NULLS = re.compile(r"\bnull(?:\s*\(ed\))?\b", re.IGNORECASE)
+RE_MANY_NEWLINES = re.compile(r"\n{3,}")
 
-st.set_page_config(page_title="Normalizador de CVar (CONICET)", layout="wide")
-st.title("Normalizador de CVar (PDF CONICET → TXT/DOCX)")
-st.caption("Limpia ruido del PDF y elimina DATOS PERSONALES. Genera TXT/DOCX listos para el Valorador (Repo 2).")
+@dataclass
+class NormalizeOptions:
+    remove_personal_data: bool = True
+    remove_rubros_basura: bool = True
+    remove_nulls: bool = True
 
-uploaded = st.file_uploader("Subí el PDF CVar descargado de CONICET", type=["pdf"])
+def normalize_text(raw_text: str, opts: Optional[NormalizeOptions] = None) -> str:
+    opts = opts or NormalizeOptions()
+    text = (raw_text or "").replace("\r\n", "\n").replace("\r", "\n")
+    if opts.remove_personal_data:
+        text = RE_DATOS_PERSONALES.sub("FORMACIÓN ACADÉMICA\n", text)
+    if opts.remove_rubros_basura:
+        text = RE_RUBRO_BASURA.sub("", text)
+    if opts.remove_nulls:
+        text = RE_NULLS.sub("", text)
+    text = RE_MANY_NEWLINES.sub("\n\n", text).strip() + "\n"
+    return text
 
-remove_personal = st.checkbox("Eliminar DATOS PERSONALES (recomendado)", value=True)
-remove_rubros = st.checkbox("Eliminar rótulos basura (TECNOLOGÍA E INNOVACIÓN)", value=True)
-remove_nulls = st.checkbox("Eliminar null / null(ed)", value=True)
+def extract_text_from_pdf_bytes(pdf_bytes: bytes) -> str:
+    import io
+    import pdfplumber
+    parts = []
+    with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
+        for page in pdf.pages:
+            parts.append(page.extract_text() or "")
+    return "\n".join(parts)
 
-if uploaded:
-    pdf_bytes = uploaded.read()
-
-    with st.spinner("Extrayendo texto..."):
-        raw_text = extract_text_from_pdf_bytes(pdf_bytes)
-
-    opts = NormalizeOptions(
-        remove_personal_data=remove_personal,
-        remove_rubros_basura=remove_rubros,
-        remove_nulls=remove_nulls,
-    )
-
-    clean_text = normalize_text(raw_text, opts)
-
-    st.success("Listo. Descargá el TXT/DOCX limpio.")
-
-    st.download_button(
-        "⬇️ Descargar TXT limpio",
-        data=clean_text.encode("utf-8"),
-        file_name=uploaded.name.replace(".pdf", "") + "__CVAR_CLEAN.txt",
-        mime="text/plain",
-        use_container_width=True
-    )
-
-    docx_bytes = build_docx_bytes(clean_text)
-    st.download_button(
-        "⬇️ Descargar DOCX limpio",
-        data=docx_bytes,
-        file_name=uploaded.name.replace(".pdf", "") + "__CVAR_CLEAN.docx",
-        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        use_container_width=True
-    )
-
-    st.divider()
-    st.subheader("Vista previa (primeras 200 líneas)")
-    st.text("\n".join(clean_text.splitlines()[:200]))
+def build_docx_bytes(clean_text: str) -> bytes:
+    import io
+    from docx import Document
+    doc = Document()
+    for line in clean_text.split("\n"):
+        doc.add_paragraph(line)
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
