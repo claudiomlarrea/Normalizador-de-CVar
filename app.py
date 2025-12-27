@@ -1,50 +1,43 @@
+# app.py
 import streamlit as st
+from normalizer import normalize_text
 
-st.set_page_config(page_title="Normalizador de CVar (CONICET)", layout="wide")
-st.title("Normalizador de CVar (PDF CONICET → TXT/DOCX)")
-st.caption("Subí un PDF CVar y descargá TXT/DOCX limpios.")
-
-uploaded = st.file_uploader("Subí el PDF CVar descargado de CONICET", type=["pdf"])
-
-if uploaded is None:
-    st.info("Esperando que subas un PDF...")
-    st.stop()
-
-# Imports pesados SOLO después de subir PDF
-from normalizer import NormalizeOptions, extract_text_from_pdf_bytes, normalize_text, build_docx_bytes
-
-remove_personal = st.checkbox("Eliminar DATOS PERSONALES (recomendado)", value=True)
-remove_rubros = st.checkbox("Eliminar rótulos basura (TECNOLOGÍA E INNOVACIÓN)", value=True)
-remove_nulls = st.checkbox("Eliminar null / null(ed)", value=True)
-
-pdf_bytes = uploaded.read()
-
-with st.spinner("Extrayendo texto del PDF..."):
-    raw_text = extract_text_from_pdf_bytes(pdf_bytes)
-
-opts = NormalizeOptions(
-    remove_personal_data=remove_personal,
-    remove_rubros_basura=remove_rubros,
-    remove_nulls=remove_nulls,
+st.set_page_config(
+    page_title="Normalizador de CVar (CONICET)",
+    layout="centered"
 )
 
-clean_text = normalize_text(raw_text, opts)
+st.title("Normalizador de CVar")
+st.caption("PDF/TXT CONICET → texto limpio para valoración")
 
-st.success("Listo. Descargá el TXT/DOCX limpio.")
-
-st.download_button(
-    "⬇️ Descargar TXT limpio",
-    data=clean_text.encode("utf-8"),
-    file_name=uploaded.name.replace(".pdf", "") + "__CVAR_CLEAN.txt",
-    mime="text/plain",
-    use_container_width=True
+st.markdown(
+"""
+**Uso correcto**
+1. Subí un TXT limpio del CVar (salida del PDF).
+2. Presioná **Normalizar**.
+3. Descargá el archivo limpio para el Valorador.
+"""
 )
 
-docx_bytes = build_docx_bytes(clean_text)
-st.download_button(
-    "⬇️ Descargar DOCX limpio",
-    data=docx_bytes,
-    file_name=uploaded.name.replace(".pdf", "") + "__CVAR_CLEAN.docx",
-    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    use_container_width=True
+uploaded_file = st.file_uploader(
+    "Subir archivo TXT de CVar",
+    type=["txt"]
 )
+
+if uploaded_file is not None:
+    raw_text = uploaded_file.read().decode("utf-8", errors="ignore")
+
+    st.success("Archivo cargado correctamente.")
+
+    if st.button("Normalizar CVar"):
+        with st.spinner("Normalizando texto..."):
+            cleaned_text = normalize_text(raw_text)
+
+        st.success("Normalización finalizada.")
+
+        st.download_button(
+            label="Descargar CVar limpio",
+            data=cleaned_text,
+            file_name=uploaded_file.name.replace(".txt", "__CVAR_CLEAN.txt"),
+            mime="text/plain"
+        )
