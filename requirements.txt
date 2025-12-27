@@ -1,3 +1,4 @@
-streamlit>=1.37
-pdfplumber>=0.11.4
-python-docx>=1.1.2
+streamlit
+pdfplumber
+python-docx
+pdfminer.six
