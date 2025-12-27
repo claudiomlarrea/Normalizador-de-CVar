@@ -169,18 +169,14 @@ def normalize_text(raw_text: str, cfg: Optional[NormalizationConfig] = None) -> 
 
 
 def export_docx(clean_text: str, out_path: Path) -> None:
+    """
+    Export DOCX robusto (sin setear fuentes para evitar errores en Streamlit Cloud).
+    """
+    from docx import Document
+
     doc = Document()
-    style = doc.styles["Normal"]
-    style.font.name = "Times New Roman"
-    style._element.rPr.rFonts.set(qn("w:eastAsia"), "Times New Roman")
-    style.font.size = 12
-
     for line in clean_text.split("\n"):
-        p = doc.add_paragraph("" if line.strip() == "" else line.strip())
-        if line.strip() and (RE_SECTION.match(line.strip()) or RE_ALL_CAPS.match(line.strip())):
-            for run in p.runs:
-                run.bold = True
-
+        doc.add_paragraph(line)
     doc.save(str(out_path))
 
 
