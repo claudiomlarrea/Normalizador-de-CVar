@@ -1,31 +1,11 @@
-# Normalizador de CVar (PDF CONICET → TXT/DOCX)
+# Valorador de CVar CLEAN (TXT)
 
-Repo 1 del flujo:
+Entrada: archivo `*_CVAR_CLEAN.txt` (salida del repositorio Normalizador-de-CVar).
 
-1) **Normalizador** (este repo): limpia el PDF de CVar (CONICET) y genera un **TXT/DOCX** “sin ruido”.
-2) **Valorador** (repo 2): toma el TXT/DOCX limpio y realiza extracción + puntaje + categoría.
+Salidas:
+- Excel con puntaje por ítem y sección + total + categoría
+- Word con informe y evidencias
 
-## Qué limpia (ejemplos reales)
-- Encabezado repetido: `APELLIDO, NOMBRE` (en cada página)
-- Pie: `CVar ES UNA INICIATIVA...` + `Fecha de generación`
-- Números de página
-- `null`
-- Bullets / símbolos HTML tipo `&#61485;` (p. ej. en listados de títulos)
-
-## Ejecutar (Streamlit)
-```bash
+## Ejecutar local
 pip install -r requirements.txt
 streamlit run app.py
-```
-
-## Ejecutar (CLI)
-```bash
-python normalizer.py "CVAR BEATRIZ FARAH.pdf" --outdir outputs
-```
-
-Genera:
-- `outputs/<archivo>__CVAR_CLEAN.txt`
-- `outputs/<archivo>__CVAR_CLEAN.docx`
-
-## Ajustes
-Si aparece un nuevo ruido, se agrega una regla simple en `normalizer.py` (regex).
