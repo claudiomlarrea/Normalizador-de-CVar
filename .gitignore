@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Outputs del normalizador
+outputs/
+*.docx
+*.txt
+
+# PDFs reales
+*.pdf
