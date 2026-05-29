@@ -7,5 +7,8 @@ Salidas:
 - Word con informe y evidencias
 
 ## Ejecutar local
+```bash
 pip install -r requirements.txt
-streamlit run app.py
+python3 -m streamlit run app.py
+```
+→ http://localhost:8501 — luego valorar el `*_CVAR_CLEAN.txt` en **Valorador-CVar-CLEAN**.
